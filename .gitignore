@@ -1,5 +1,21 @@
-frontend/node_modules
-backend/node_modules
-frontend/.env
-backend/.env
-frontend/dist
+# Dependencies
+node_modules/
+
+# Environment variables (berisi secrets!)
+.env
+smart-irigasi-backend/.env
+
+# Build output
+smart-irigasi/dist/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Editor
+.vscode/
+.idea/
+
+# Logs
+*.log
+npm-debug.log*

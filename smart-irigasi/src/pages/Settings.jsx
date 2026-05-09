@@ -1,5 +1,8 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import api from '../api'
+import { gsap } from 'gsap'
+import { useTheme } from '../context/ThemeContext'
+import { Settings2, Sun, Moon, Droplets, Timer, Save } from 'lucide-react'
 
 function Settings() {
   const [threshold,   setThreshold]   = useState(35)
@@ -8,6 +11,9 @@ function Settings() {
   const [saving,      setSaving]      = useState(false)
   const [error,       setError]       = useState('')
   const [sukses,      setSukses]      = useState('')
+
+  const { theme, toggleTheme } = useTheme()
+  const pageRef = useRef(null)
 
   const fetchSettings = async () => {
     try {
@@ -23,13 +29,25 @@ function Settings() {
 
   useEffect(() => { fetchSettings() }, [])
 
+  // GSAP animate
+  useEffect(() => {
+    if (loading) return
+    if (pageRef.current) {
+      const els = pageRef.current.querySelectorAll('.card')
+      gsap.fromTo(els,
+        { y: 20, opacity: 0 },
+        { y: 0, opacity: 1, duration: 0.4, stagger: 0.1, ease: 'power2.out' }
+      )
+    }
+  }, [loading])
+
   const handleSimpan = async () => {
     setSaving(true)
     setError('')
     setSukses('')
     try {
       await api.put('/settings', { threshold, durasiSiram })
-      setSukses('Settings berhasil disimpan!')
+      setSukses('Pengaturan berhasil disimpan!')
       setTimeout(() => setSukses(''), 3000)
     } catch (err) {
       setError(err.response?.data?.message || 'Gagal menyimpan settings!')
@@ -39,68 +57,82 @@ function Settings() {
   }
 
   if (loading) return (
-    <div style={{ textAlign: 'center', color: '#4a5568', padding: '60px 0' }}>
-      Memuat settings...
+    <div className="spinner-wrap">
+      <div className="spinner" />
+      Memuat pengaturan...
     </div>
   )
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+    <div ref={pageRef} style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
 
-      {/* Judul */}
-      <div>
-        <h2 style={{ fontSize: 20, fontWeight: 700 }}>Pengaturan</h2>
-        <p style={{ fontSize: 13, color: '#4a5568', marginTop: 4 }}>
-          Konfigurasi sistem auto siram
-        </p>
+      <div className="page-header">
+        <h2>Pengaturan</h2>
+        <p>Konfigurasi sistem auto siram dan tampilan</p>
       </div>
 
-      {/* Sukses */}
-      {sukses && (
-        <div style={{
-          padding: '12px 16px',
-          backgroundColor: 'rgba(52,211,153,0.06)',
-          border: '1px solid rgba(52,211,153,0.2)',
-          borderRadius: 10, color: '#34d399', fontSize: 13,
-        }}>
-          {sukses}
-        </div>
-      )}
+      {sukses && <div className="alert-msg success">{sukses}</div>}
+      {error  && <div className="alert-msg error">{error}</div>}
 
-      {/* Error */}
-      {error && (
-        <div style={{
-          padding: '12px 16px',
-          backgroundColor: 'rgba(239,68,68,0.06)',
-          border: '1px solid rgba(239,68,68,0.2)',
-          borderRadius: 10, color: '#f87171', fontSize: 13,
-        }}>
-          {error}
+      {/* ── Tampilan (Dark / Light Mode) ── */}
+      <div className="card">
+        <div className="section-title">
+          {theme === 'dark' ? <Moon size={15} /> : <Sun size={15} />}
+          Tampilan
         </div>
-      )}
 
-      {/* Card Auto Siram */}
-      <div style={{
-        backgroundColor: '#161b22', border: '1px solid #21262d',
-        borderRadius: 12, padding: 20,
-      }}>
-        <div style={{ fontSize: 15, fontWeight: 600, marginBottom: 20 }}>
+        <div className="flex items-center justify-between" style={{
+          padding: '14px 16px',
+          background: 'var(--bg-primary)',
+          border: '1px solid var(--border)',
+          borderRadius: 'var(--radius-xs)',
+        }}>
+          <div>
+            <div style={{ fontSize: 14, fontWeight: 600 }}>
+              {theme === 'dark' ? 'Mode Gelap' : 'Mode Terang'}
+            </div>
+            <div className="text-sm text-muted mt-1">
+              {theme === 'dark'
+                ? 'Tampilan saat ini gelap (dark mode)'
+                : 'Tampilan saat ini terang (light mode)'}
+            </div>
+          </div>
+          <button
+            onClick={toggleTheme}
+            className="btn btn-ghost"
+            style={{ gap: 8, padding: '9px 18px' }}
+          >
+            {theme === 'dark'
+              ? <><Sun size={15} /> Mode Terang</>
+              : <><Moon size={15} /> Mode Gelap</>
+            }
+          </button>
+        </div>
+      </div>
+
+      {/* ── Auto Siram ── */}
+      <div className="card">
+        <div className="section-title">
+          <Settings2 size={15} />
           Konfigurasi Auto Siram
         </div>
 
         {/* Threshold */}
-        <div style={{ marginBottom: 24 }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
+        <div style={{ marginBottom: 28 }}>
+          <div className="flex justify-between items-center" style={{ marginBottom: 10 }}>
             <div>
-              <div style={{ fontSize: 14, fontWeight: 600, color: '#e2e8f0' }}>
+              <div style={{ fontSize: 14, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 8 }}>
+                <Droplets size={15} style={{ color: 'var(--accent)' }} />
                 Threshold Kelembapan
               </div>
-              <div style={{ fontSize: 12, color: '#4a5568', marginTop: 2 }}>
+              <div className="text-sm text-muted mt-1">
                 Pompa nyala otomatis kalau kelembapan di bawah nilai ini
               </div>
             </div>
             <span style={{
-              fontSize: 20, fontWeight: 700, color: '#34d399',
+              fontSize: 22, fontWeight: 800,
+              color: 'var(--accent)',
+              letterSpacing: '-0.03em',
               minWidth: 60, textAlign: 'right',
             }}>
               {threshold}%
@@ -109,60 +141,57 @@ function Settings() {
           <input
             type="range" min={10} max={80} value={threshold}
             onChange={e => setThreshold(Number(e.target.value))}
-            style={{ width: '100%', cursor: 'pointer', accentColor: '#34d399' }}
+            style={{ width: '100%', cursor: 'pointer', accentColor: 'var(--accent)' }}
           />
-          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: '#4a5568', marginTop: 4 }}>
+          <div className="flex justify-between text-xs text-muted mt-1">
             <span>10% (Sangat Kering)</span>
             <span>80% (Hampir Basah)</span>
           </div>
         </div>
 
         {/* Durasi Siram */}
-        <div style={{ marginBottom: 24 }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
+        <div style={{ marginBottom: 28 }}>
+          <div className="flex justify-between items-center" style={{ marginBottom: 10 }}>
             <div>
-              <div style={{ fontSize: 14, fontWeight: 600, color: '#e2e8f0' }}>
+              <div style={{ fontSize: 14, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 8 }}>
+                <Timer size={15} style={{ color: 'var(--blue)' }} />
                 Durasi Auto Siram
               </div>
-              <div style={{ fontSize: 12, color: '#4a5568', marginTop: 2 }}>
+              <div className="text-sm text-muted mt-1">
                 Berapa lama pompa menyala saat auto siram
               </div>
             </div>
             <span style={{
-              fontSize: 20, fontWeight: 700, color: '#60a5fa',
-              minWidth: 80, textAlign: 'right',
+              fontSize: 22, fontWeight: 800,
+              color: 'var(--blue)',
+              letterSpacing: '-0.03em',
+              minWidth: 90, textAlign: 'right',
             }}>
-              {durasiSiram} detik
+              {durasiSiram}s
             </span>
           </div>
           <input
             type="range" min={1} max={300} value={durasiSiram}
             onChange={e => setDurasiSiram(Number(e.target.value))}
-            style={{ width: '100%', cursor: 'pointer', accentColor: '#60a5fa' }}
+            style={{ width: '100%', cursor: 'pointer', accentColor: 'var(--blue)' }}
           />
-          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: '#4a5568', marginTop: 4 }}>
+          <div className="flex justify-between text-xs text-muted mt-1">
             <span>1 detik</span>
             <span>300 detik (5 menit)</span>
           </div>
         </div>
 
-        {/* Tombol Simpan */}
         <button
           onClick={handleSimpan}
           disabled={saving}
-          style={{
-            width: '100%', padding: 12,
-            background: saving ? '#2d3748' : 'linear-gradient(135deg, #34d399, #059669)',
-            border: 'none', borderRadius: 10,
-            color: '#fff', fontWeight: 700,
-            fontSize: 14, fontFamily: 'inherit',
-            cursor: saving ? 'not-allowed' : 'pointer',
-            transition: 'opacity 0.2s',
-          }}
+          className="btn btn-primary w-full"
+          style={{ padding: '13px' }}
         >
+          <Save size={16} />
           {saving ? 'Menyimpan...' : 'Simpan Pengaturan'}
         </button>
       </div>
+
     </div>
   )
 }

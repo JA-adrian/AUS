@@ -12,7 +12,7 @@ const pushRoutes = require('./src/routes/pushRoutes')
 const settingsRoutes = require('./src/routes/settingsRoutes')
 const { protect }  = require('./src/middleware/auth')
 const { connectMQTT } = require('./src/config/mqtt')
-
+const { startScheduler } = require('./src/config/scheduler')
 
 const app = express()
 
@@ -38,6 +38,7 @@ mongoose.connect(process.env.MONGO_URI)
   .then(() => {
     console.log('MongoDB terhubung!')
     connectMQTT()
+    startScheduler()
     app.listen(process.env.PORT, () => {
       console.log(`Server berjalan di port ${process.env.PORT}`)
     })
